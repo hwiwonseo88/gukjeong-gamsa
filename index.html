@@ -456,6 +456,22 @@
     padding: 6px 4px;
   }
   .filters button.reset:hover { text-decoration: underline; }
+  .filters button.share-btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--critical);
+    border: none;
+    border-radius: 999px;
+    padding: 7px 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .filters button.share-btn:hover { filter: brightness(1.08); }
 
   /* ---------- Table ---------- */
   .table-wrap {
@@ -775,7 +791,7 @@
       <select id="fStatus"><option value="">전체 상태</option></select>
       <input type="search" id="fSearch" placeholder="요구사항·처리결과 내용 검색…" />
       <button class="reset" id="fReset">필터 초기화</button>
-      <button class="reset" id="fShare">이 결과 링크 복사</button>
+      <button class="share-btn" id="fShare">🔗 이 결과 링크 복사</button>
       <div class="count" id="fCount"></div>
     </div>
     <div class="table-wrap">
@@ -1045,7 +1061,7 @@ function bindShareLink() {
       setTimeout(() => { btn.textContent = orig; }, 1600);
     } catch (e) {
       btn.textContent = '복사 실패 — 주소창을 직접 복사해주세요';
-      setTimeout(() => { btn.textContent = '이 결과 링크 복사'; }, 2200);
+      setTimeout(() => { btn.textContent = '🔗 이 결과 링크 복사'; }, 2200);
     }
   });
 }
