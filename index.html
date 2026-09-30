@@ -107,7 +107,9 @@
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  html { overflow-x: hidden; }
   body {
+    overflow-x: hidden;
     background: var(--page);
     color: var(--ink);
     font-family: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -199,7 +201,6 @@
   .kpi-split-item.confirmed .value { color: var(--accent); }
   .kpi-split-item.unconfirmed .value { color: var(--silent); }
   .kpi-sub-wrap {
-    width: calc(50% - 0.5px);
     box-sizing: border-box;
     border: 1px solid var(--border);
     border-top: none;
@@ -281,13 +282,12 @@
   }
   .silence-banner .txt { font-size: 13.5px; color: var(--ink); }
   .silence-committees {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-bottom: 4px;
   }
   .silence-group {
-    grid-column: 1 / -1;
     background: var(--surface);
     border: 1px solid var(--critical);
     border-left: 4px solid var(--critical);
@@ -678,13 +678,18 @@
   }
 
   @media (max-width: 720px) {
+    .kpi-total { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .kpi-split { grid-template-columns: 1fr !important; }
+    .kpi-sub-wrap { width: 100% !important; }
     .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .filters select, .filters input[type="search"] { flex: 1 1 100%; min-width: 0; }
+    .filters .count { margin-left: 0; }
     .cbar-row { grid-template-columns: 100px 1fr 44px; }
     .cbar-row .cbar-rate { display: none; }
     .agency-list-head, .agency-row { grid-template-columns: 28px 1fr 50px 44px; }
     .agency-list-head > div:nth-child(4), .agency-row .minibar { display: none; }
-    .row-head { grid-template-columns: 1fr 20px; }
-    .row-head .committee, .row-head .agency, .row-head .req { grid-column: 1; }
+    .row-head { grid-template-columns: 1fr 20px; row-gap: 4px; }
+    .row-head .committee, .row-head .agency, .row-head .req, .row-head .pill { grid-column: 1; }
   }
 
   /* ---------- Top-level tabs ---------- */
@@ -821,7 +826,7 @@
 
   <div class="kpi-total" id="kpiTotal"></div>
   <div class="kpi-split" id="kpiSplit"></div>
-  <div class="kpi-sub-wrap">
+  <div class="kpi-sub-wrap" id="kpiSubWrap">
     <div class="kpi-sub-caption" id="kpiSubCaption"></div>
     <div class="kpis" id="kpiStrip"></div>
   </div>
@@ -990,6 +995,16 @@ function renderKPIs() {
       <div class="value">${fmt(nrCount)}건<span class="pct">${pct(nrCount)}%</span></div>
     </div>
   `;
+
+  // 확보/미확보 칸 너비를 실제 비율에 맞게(너무 한쪽으로 쏠리면 라벨이 안 보이니 최소폭은 확보)
+  const MIN_SIDE_PCT = 24;
+  let confirmedW = Math.max(total ? confirmedCount/total*100 : 50, MIN_SIDE_PCT);
+  let nrW = Math.max(total ? nrCount/total*100 : 50, MIN_SIDE_PCT);
+  const sideSum = confirmedW + nrW;
+  confirmedW = confirmedW / sideSum * 100;
+  nrW = nrW / sideSum * 100;
+  document.getElementById('kpiSplit').style.gridTemplateColumns = `${confirmedW}fr ${nrW}fr`;
+  document.getElementById('kpiSubWrap').style.width = `calc(${confirmedW}% - 0.5px)`;
 
   document.getElementById('kpiSubCaption').textContent =
     `↳ 처리결과 확보 ${fmt(confirmedCount)}건의 세부 판정`;
