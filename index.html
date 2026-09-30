@@ -359,7 +359,7 @@
   }
   .agency-list-head {
     display: grid;
-    grid-template-columns: 36px 1fr 64px 140px 64px;
+    grid-template-columns: 36px 1fr 64px 140px 84px;
     gap: 12px;
     align-items: center;
     padding: 9px 18px;
@@ -379,7 +379,7 @@
   }
   .agency-row {
     display: grid;
-    grid-template-columns: 36px 1fr 64px 140px 64px;
+    grid-template-columns: 36px 1fr 64px 140px 84px;
     align-items: center;
     gap: 12px;
     padding: 8px 18px;
@@ -406,6 +406,17 @@
     font-weight: 700;
     font-size: 13px;
     text-align: right;
+  }
+  .agency-row.allnr { background: var(--silent-wash); }
+  .agency-row .nr-flag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 100px;
+    background: var(--silent-wash);
+    color: var(--silent);
+    white-space: nowrap;
   }
 
   /* ---------- Filter bar ---------- */
@@ -765,13 +776,13 @@
 
   <section>
     <div class="section-head">
-      <h2>기관별 이행 현황</h2>
+      <h2>부처별 이행 현황</h2>
       <div class="note" id="agencyListNote"></div>
     </div>
     <div class="agency-list-wrap">
       <div class="agency-list-head">
         <div>순위</div>
-        <div>기관</div>
+        <div>부처</div>
         <div style="text-align:right">건수</div>
         <div>이행 vs 미이행·확인불가</div>
         <div style="text-align:right">이행률</div>
@@ -988,23 +999,32 @@ function renderCommitteeChart() {
   });
 }
 
-/* ---------- Agency list (전체 기관, 이행률 낮은 순) ---------- */
+/* ---------- 부처 목록 (부/처/청/위원회 산하가 아닌 중앙부처 14곳, 이행률 낮은 순) ---------- */
+// "본부"·"사령부"는 이름이 "부"로 끝나도 부처가 아님(공군본부·해병대사령부 등) — 단,
+// "고용노동부 본부"처럼 "OO부 본부"(중간에 공백) 형태는 그 부처 본체를 가리키는 표기라 예외로 인정
+function isRealMinistry(name) {
+  const core = name.replace(/[\(（].*?[\)）]$/, '').trim();
+  if (/.+부\s+본부$/.test(core)) return true;
+  return core.endsWith('부') && !core.endsWith('본부') && !core.endsWith('사령부');
+}
+
 function renderAgencyList() {
   // 위원회+기관 조합으로 키를 잡음(기관명만으로 묶으면 "경기도"·"서울특별시"처럼
   // 서로 다른 위원회에 동명 기관이 있는 경우 다른 위원회 실적이 하나로 섞여버림)
   const byA = {};
-  DATA.forEach(d => {
+  DATA.filter(d => isRealMinistry(d.a)).forEach(d => {
     const key = d.c + '␟' + d.a;
     byA[key] = byA[key] || { name:d.a, committee:d.c, total:0, counts:{} };
     byA[key].total++;
     byA[key].counts[d.s] = (byA[key].counts[d.s]||0) + 1;
   });
-  const rows = Object.values(byA).map(o => ({
-    name:o.name, committee:o.committee, total:o.total, counts:o.counts, rate: implRate(o.counts, o.total)
-  })).sort((a,b) => a.rate - b.rate);
+  const rows = Object.values(byA).map(o => {
+    const nr = o.counts[NR] || 0;
+    return { name:o.name, committee:o.committee, total:o.total, counts:o.counts, rate: implRate(o.counts, o.total), allNr: nr === o.total };
+  }).sort((a,b) => a.rate - b.rate);
 
   document.getElementById('agencyListNote').textContent =
-    `위원회 결과보고서에 등장하는 소관기관 ${rows.length}개(정부 응답이 확인된 기관 + "처리결과 미공개"만 있는 기관 모두 포함, 위원회·기관 조합 기준) · 이행률(반영완료+부분반영 비율)이 낮은 순 · 건수가 적은 기관은 비율이 불안정할 수 있어 건수를 함께 표기`;
+    `중앙부처 ${rows.length}곳(청·위원회·공공기관 등 소속기관 제외, 부처 본체만) · 이행률(반영완료+부분반영 비율)이 낮은 순 · "처리결과 미확보 100%"는 정부가 미이행한 게 아니라 처리결과 문서 자체가 확인 안 된 경우`;
 
   document.getElementById('agencyList').innerHTML = rows.map((r,i) => {
     const segs = STATUS_ORDER.map(s => {
@@ -1012,13 +1032,16 @@ function renderAgencyList() {
       if (!c) return '';
       return `<div class="seg" style="width:${c/r.total*100}%;background:${STATUS_META[s].color}" title="${STATUS_LABEL[s]} ${c}건"></div>`;
     }).join('');
+    const rateCell = r.allNr
+      ? `<span class="nr-flag" title="처리결과 미확보 100% — 정부가 미이행한 게 아니라 처리결과 문서 자체가 확인 안 된 경우">미확보</span>`
+      : `${(r.rate*100).toFixed(0)}%`;
     return `
-      <div class="agency-row">
+      <div class="agency-row ${r.allNr ? 'allnr' : ''}">
         <div class="idx">${i+1}</div>
         <div class="name">${r.name}<span class="sub">${r.committee}</span></div>
         <div class="cnt">${fmt(r.total)}건</div>
         <div class="minibar">${segs}</div>
-        <div class="rate">${(r.rate*100).toFixed(0)}%</div>
+        <div class="rate">${rateCell}</div>
       </div>
     `;
   }).join('');
