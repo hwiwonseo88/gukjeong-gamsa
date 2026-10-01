@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hwiwonseo88.github.io/gukjeong-gamsa/sitemap.xml
