@@ -828,7 +828,30 @@
     border: 1px dashed var(--border);
     border-radius: 12px;
   }
+  .inapp-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: var(--warning-wash);
+    color: var(--ink);
+    font-size: 13px;
+    padding: 10px 16px;
+    text-align: center;
+  }
+  .inapp-banner span { max-width: 100%; }
+  .inapp-banner a {
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .inapp-banner a:hover { text-decoration: underline; }
 </style>
+
+<div class="inapp-banner" id="inappBanner" hidden>
+  <span>카카오톡 안에서는 공유·일부 기능이 제대로 안 열릴 수 있어요.</span>
+  <a id="inappOpenBtn" href="#">외부 브라우저로 열기 →</a>
+</div>
 
 <div class="wrap">
 
@@ -1254,6 +1277,22 @@ function bindShareLink() {
 }
 
 /* ---------- 사이트 전체 공유 버튼(휴대폰 네이티브 공유시트 / 페이스북) ---------- */
+/* ---------- 카카오톡 인앱브라우저 감지 — 공유·로그인류 기능이 거기선 제대로 안 되므로
+   외부 브라우저(사파리/크롬)로 열도록 안내 배너를 띄움 */
+function checkInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  const isKakao = /KAKAOTALK/i.test(ua);
+  if (!isKakao) return;
+  const url = location.href;
+  const banner = document.getElementById('inappBanner');
+  const link = document.getElementById('inappOpenBtn');
+  if (link) link.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url);
+  if (banner) banner.hidden = false;
+  // 인앱브라우저 안에서는 공유 버튼들이 제대로 안 먹히므로 숨김(헷갈림 방지)
+  const row = document.getElementById('shareRow');
+  if (row) row.hidden = true;
+}
+
 function bindGlobalShare() {
   const row = document.getElementById('shareRow');
   if (!row) return;
@@ -1523,6 +1562,7 @@ bindFilters();
 bindShareLink();
 updateShareButtonVisibility();
 bindGlobalShare();
+checkInAppBrowser();
 renderTable();
 scrollToResultsIfShared();
 bindTabs();
