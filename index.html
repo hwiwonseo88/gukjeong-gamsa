@@ -161,6 +161,27 @@
     font-size: 15px;
     margin: 2px 0 0;
   }
+  .share-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .share-pill {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-2);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .share-pill:hover { background: var(--surface-2); color: var(--ink); }
   .masthead .meta {
     display: flex;
     flex-wrap: wrap;
@@ -822,6 +843,10 @@
     <div class="eyebrow">국정감사 시정요구 이행검증 플랫폼</div>
     <h1>국정감사실록</h1>
     <p>2025년도 국정감사에서 각 상임위원회가 제기한 시정요구사항과, 이후 정부(기관)가 제출한 처리결과를 항목별로 대조해 독립적으로 판정한 결과입니다.</p>
+    <div class="share-row" id="shareRow">
+      <button class="share-pill" id="shareNative">📤 공유하기</button>
+      <button class="share-pill" id="shareFacebook">📘 페이스북에 공유</button>
+    </div>
   </div>
 
   <div class="kpi-total" id="kpiTotal"></div>
@@ -875,7 +900,7 @@
       <select id="fStatus"><option value="">전체 상태</option></select>
       <input type="search" id="fSearch" placeholder="요구사항·처리결과 내용 검색…" />
       <button class="reset" id="fReset">필터 초기화</button>
-      <button class="share-btn" id="fShare">🔗 이 결과 링크 복사</button>
+      <button class="share-btn" id="fShare" hidden>🔗 이 필터 결과 링크 복사</button>
       <div class="count" id="fCount"></div>
     </div>
     <div class="table-wrap">
@@ -1191,7 +1216,16 @@ function scrollToResultsIfShared() {
     window.scrollTo({ top: y, behavior: 'auto' });
   });
 }
+function hasActiveFilter() {
+  return !!(state.committee || state.agency || state.status || state.search);
+}
+function updateShareButtonVisibility() {
+  const btn = document.getElementById('fShare');
+  if (!btn || FRAMED) return;
+  btn.hidden = !hasActiveFilter();
+}
 function syncURLFromState() {
+  updateShareButtonVisibility();
   if (FRAMED) return;
   const p = new URLSearchParams();
   if (state.committee) p.set('c', state.committee);
@@ -1214,9 +1248,41 @@ function bindShareLink() {
       setTimeout(() => { btn.textContent = orig; }, 1600);
     } catch (e) {
       btn.textContent = '복사 실패 — 주소창을 직접 복사해주세요';
-      setTimeout(() => { btn.textContent = '🔗 이 결과 링크 복사'; }, 2200);
+      setTimeout(() => { btn.textContent = '🔗 이 필터 결과 링크 복사'; }, 2200);
     }
   });
+}
+
+/* ---------- 사이트 전체 공유 버튼(휴대폰 네이티브 공유시트 / 페이스북) ---------- */
+function bindGlobalShare() {
+  const row = document.getElementById('shareRow');
+  if (!row) return;
+  if (FRAMED) { row.remove(); return; }
+
+  const canonicalUrl = location.origin + location.pathname;
+  const shareTitle = '국정감사실록';
+  const shareText = '국정감사 시정요구 이행검증 플랫폼';
+
+  const nativeBtn = document.getElementById('shareNative');
+  if (nativeBtn) {
+    if (!navigator.share) {
+      nativeBtn.remove();
+    } else {
+      nativeBtn.addEventListener('click', async () => {
+        try {
+          await navigator.share({ title: shareTitle, text: shareText, url: canonicalUrl });
+        } catch (e) { /* 사용자가 취소한 경우 등 — 무시 */ }
+      });
+    }
+  }
+
+  const fbBtn = document.getElementById('shareFacebook');
+  if (fbBtn) {
+    fbBtn.addEventListener('click', () => {
+      const u = encodeURIComponent(canonicalUrl);
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${u}`, '_blank', 'noopener,width=600,height=520');
+    });
+  }
 }
 
 function uniqueSorted(arr) { return [...new Set(arr)].sort((a,b)=>a.localeCompare(b,'ko')); }
@@ -1455,6 +1521,8 @@ document.getElementById('fStatus').value = state.status;
 document.getElementById('fSearch').value = state.search;
 bindFilters();
 bindShareLink();
+updateShareButtonVisibility();
+bindGlobalShare();
 renderTable();
 scrollToResultsIfShared();
 bindTabs();
